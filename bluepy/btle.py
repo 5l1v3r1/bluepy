@@ -380,15 +380,15 @@ class BluepyHelper:
 
 
 class Peripheral(BluepyHelper):
-    def __init__(self, deviceAddr=None, addrType=ADDR_TYPE_PUBLIC, iface=None):
+    def __init__(self, deviceAddr=None, addrType=ADDR_TYPE_PUBLIC, iface=None, timeout=None):
         BluepyHelper.__init__(self)
         self._serviceMap = None # Indexed by UUID
         (self.deviceAddr, self.addrType, self.iface) = (None, None, None)
 
         if isinstance(deviceAddr, ScanEntry):
-            self._connect(deviceAddr.addr, deviceAddr.addrType, deviceAddr.iface)
+            self._connect(deviceAddr.addr, deviceAddr.addrType, deviceAddr.iface, timeout=timeout)
         elif deviceAddr is not None:
-            self._connect(deviceAddr, addrType, iface)
+            self._connect(deviceAddr, addrType, iface,  timeout=timeout)
 
     def setDelegate(self, delegate_): # same as withDelegate(), deprecated
         return self.withDelegate(delegate_)
@@ -418,7 +418,7 @@ class Peripheral(BluepyHelper):
                     continue
             return resp
 
-    def _connect(self, addr, addrType=ADDR_TYPE_PUBLIC, iface=None):
+    def _connect(self, addr, addrType=ADDR_TYPE_PUBLIC, iface=None, timeout=None):
         if len(addr.split(":")) != 6:
             raise ValueError("Expected MAC address, got %s" % repr(addr))
         if addrType not in (ADDR_TYPE_PUBLIC, ADDR_TYPE_RANDOM):
@@ -431,32 +431,32 @@ class Peripheral(BluepyHelper):
             self._writeCmd("conn %s %s %s\n" % (addr, addrType, "hci"+str(iface)))
         else:
             self._writeCmd("conn %s %s\n" % (addr, addrType))
-        rsp = self._getResp('stat')
+        rsp = self._getResp('stat', timeout=timeout)
         while rsp['state'][0] == 'tryconn':
             rsp = self._getResp('stat')
         if rsp['state'][0] != 'conn':
             self._stopHelper()
             raise BTLEDisconnectError("Failed to connect to peripheral %s, addr type: %s" % (addr, addrType), rsp)
 
-    def connect(self, addr, addrType=ADDR_TYPE_PUBLIC, iface=None):
+    def connect(self, addr, addrType=ADDR_TYPE_PUBLIC, iface=None, timeout=None):
         if isinstance(addr, ScanEntry):
-            self._connect(addr.addr, addr.addrType, addr.iface)
+            self._connect(addr.addr, addr.addrType, addr.iface, timeout=timeout)
         elif addr is not None:
-            self._connect(addr, addrType, iface)
+            self._connect(addr, addrType, iface, timeout=timeout)
 
-    def disconnect(self):
+    def disconnect(self, timeout=None):
         if self._helper is None:
             return
         # Unregister the delegate first
         self.setDelegate(None)
 
         self._writeCmd("disc\n")
-        self._getResp('stat')
+        self._getResp('stat', timeout=timeout)
         self._stopHelper()
 
-    def discoverServices(self):
+    def discoverServices(self, timeout=None):
         self._writeCmd("svcs\n")
-        rsp = self._getResp('find')
+        rsp = self._getResp('find', timeout=timeout)
         starts = rsp['hstart']
         ends   = rsp['hend']
         uuids  = rsp['uuid']
@@ -480,12 +480,12 @@ class Peripheral(BluepyHelper):
     def getServices(self):
         return self.services
 
-    def getServiceByUUID(self, uuidVal):
+    def getServiceByUUID(self, uuidVal, timeout=None):
         uuid = UUID(uuidVal)
         if self._serviceMap is not None and uuid in self._serviceMap:
             return self._serviceMap[uuid]
         self._writeCmd("svcs %s\n" % uuid)
-        rsp = self._getResp('find')
+        rsp = self._getResp('find', timeout=timeout)
         if 'hstart' not in rsp:
             raise BTLEGattError("Service %s not found" % (uuid.getCommonName()), rsp)
         svc = Service(self, uuid, rsp['hstart'][0], rsp['hend'][0])
@@ -500,18 +500,18 @@ class Peripheral(BluepyHelper):
         self._writeCmd("incl %X %X\n" % (startHnd, endHnd))
         return self._getResp('find')
 
-    def getCharacteristics(self, startHnd=1, endHnd=0xFFFF, uuid=None):
+    def getCharacteristics(self, startHnd=1, endHnd=0xFFFF, uuid=None, timeout=None):
         cmd = 'char %X %X' % (startHnd, endHnd)
         if uuid:
             cmd += ' %s' % UUID(uuid)
         self._writeCmd(cmd + "\n")
-        rsp = self._getResp('find')
+        rsp = self._getResp('find', timeout=timeout)
         nChars = len(rsp['hnd'])
         return [Characteristic(self, rsp['uuid'][i], rsp['hnd'][i],
                                rsp['props'][i], rsp['vhnd'][i])
                 for i in range(nChars)]
 
-    def getDescriptors(self, startHnd=1, endHnd=0xFFFF):
+    def getDescriptors(self, startHnd=1, endHnd=0xFFFF, timeout=None):
         self._writeCmd("desc %X %X\n" % (startHnd, endHnd) )
         # Historical note:
         # Certain Bluetooth LE devices are not capable of sending back all
@@ -521,30 +521,30 @@ class Peripheral(BluepyHelper):
         # In bluez 5.25 and later, gatt_discover_desc() in attrib/gatt.c does the retry
         # so bluetooth_helper always returns a full list.
         # This was broken in earlier versions.
-        resp = self._getResp('desc')
+        resp = self._getResp('desc', timeout=timeout)
         ndesc = len(resp['hnd'])
         return [Descriptor(self, resp['uuid'][i], resp['hnd'][i]) for i in range(ndesc)]
 
-    def readCharacteristic(self, handle):
+    def readCharacteristic(self, handle, timeout=None):
         self._writeCmd("rd %X\n" % handle)
-        resp = self._getResp('rd')
+        resp = self._getResp('rd', timeout=timeout)
         return resp['d'][0]
 
-    def _readCharacteristicByUUID(self, uuid, startHnd, endHnd):
+    def _readCharacteristicByUUID(self, uuid, startHnd, endHnd, timeout=None):
         # Not used at present
         self._writeCmd("rdu %s %X %X\n" % (UUID(uuid), startHnd, endHnd))
-        return self._getResp('rd')
+        return self._getResp('rd', timeout=timeout)
 
-    def writeCharacteristic(self, handle, val, withResponse=False):
+    def writeCharacteristic(self, handle, val, withResponse=False, timeout=None):
         # Without response, a value too long for one packet will be truncated,
         # but with response, it will be sent as a queued write
         cmd = "wrr" if withResponse else "wr"
         self._writeCmd("%s %X %s\n" % (cmd, handle, binascii.b2a_hex(val).decode('utf-8')))
-        return self._getResp('wr')
+        return self._getResp('wr', timeout=timeout)
 
-    def setSecurityLevel(self, level):
+    def setSecurityLevel(self, level, timeout=None):
         self._writeCmd("secu %s\n" % level)
-        return self._getResp('stat')
+        return self._getResp('stat', timeout=timeout)
 
     def unpair(self):
         self._mgmtCmd("unpair")
@@ -552,13 +552,14 @@ class Peripheral(BluepyHelper):
     def pair(self):
         self._mgmtCmd("pair")
 
-    def setMTU(self, mtu):
+    def setMTU(self, mtu, timeout=None):
         self._writeCmd("mtu %x\n" % mtu)
-        return self._getResp('stat')
+        return self._getResp('stat', timeout=timeout)
 
     def waitForNotifications(self, timeout):
          resp = self._getResp(['ntfy','ind'], timeout)
          return (resp != None)
+
     def _setRemoteOOB(self, address, address_type, oob_data, iface=None):
         if self._helper is None:
             self._startHelper(iface)
@@ -584,14 +585,14 @@ class Peripheral(BluepyHelper):
         elif address is not None:
             return self._setRemoteOOB(address, address_type, oob_data, iface)
 
-    def getLocalOOB(self, iface=None):
+    def getLocalOOB(self, iface=None, timeout=None):
         if self._helper is None:
             self._startHelper(iface)
         self.iface = iface
         self._writeCmd("local_oob\n")
         if iface is not None:
             cmd += " hci"+str(iface)
-        resp = self._getResp('oob')
+        resp = self._getResp('oob', timeout=timeout)
         if resp is not None:
             data = resp.get('d', [''])[0]
             if data is None:
