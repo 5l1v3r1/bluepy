@@ -193,8 +193,8 @@ class Characteristic:
         self.uuid = UUID(uuidVal)
         self.descs = None
 
-    def read(self):
-        return self.peripheral.readCharacteristic(self.valHandle)
+    def read(self, timeout=None):
+        return self.peripheral.readCharacteristic(self.valHandle, timeout=timeout)
 
     def write(self, val, withResponse=False):
         return self.peripheral.writeCharacteristic(self.valHandle, val, withResponse)
