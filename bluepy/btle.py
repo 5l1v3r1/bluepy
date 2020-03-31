@@ -403,6 +403,10 @@ class Peripheral(BluepyHelper):
         if isinstance(wantType, list) is not True:
             wantType = [wantType]
 
+        if timeout is None: 
+            # Adding a default timeout 
+            timeout = 5.0 
+
         while True:
             if timeout is None: 
                 print("!!No timeout set!!")
