@@ -81,6 +81,11 @@ class BTLEGattError(BTLEException):
     def __init__(self, message, rsp=None):
         BTLEException.__init__(self, message, rsp)
 
+class BTLETimeoutError(BTLEException):
+    def __init__(self, message, rsp=None):
+        BTLEException.__init__(self, message, rsp)
+
+
 
 
 class UUID:
@@ -342,7 +347,7 @@ class BluepyHelper:
                 fds = self._poller.poll(timeout*1000)
                 if len(fds) == 0:
                     DBG("Select timeout")
-                    return None
+                    raise BTLETimeoutError("Timeout happened", None)
 
             rv = self._helper.stdout.readline()
             DBG("Got:", repr(rv))
@@ -408,8 +413,6 @@ class Peripheral(BluepyHelper):
             timeout = 5.0 
 
         while True:
-            if timeout is None: 
-                print("!!No timeout set!!")
             resp = self._waitResp(wantType + ['ntfy', 'ind'], timeout)
             if resp is None:
                 return None
