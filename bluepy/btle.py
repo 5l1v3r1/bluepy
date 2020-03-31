@@ -404,6 +404,8 @@ class Peripheral(BluepyHelper):
             wantType = [wantType]
 
         while True:
+            if timeout is None: 
+                print("!!No timeout set!!")
             resp = self._waitResp(wantType + ['ntfy', 'ind'], timeout)
             if resp is None:
                 return None
