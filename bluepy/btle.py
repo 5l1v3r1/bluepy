@@ -11,6 +11,7 @@ import binascii
 import select
 import struct
 import signal
+import asyncio
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -351,6 +352,7 @@ class BluepyHelper:
 
             rv = self._helper.stdout.readline()
             DBG("Got:", repr(rv))
+             # A log output starts with # 
             if rv.startswith('#') or rv == '\n' or len(rv)==0:
                 continue
 
@@ -378,7 +380,11 @@ class BluepyHelper:
                 continue
             else:
                 raise BTLEInternalError("Unexpected response (%s)" % respType, resp)
+    
+    # async def async_wait_resp(self, wantType, timeout=None):
 
+
+    
     def status(self):
         self._writeCmd("stat\n")
         return self._waitResp(['stat'])
@@ -442,7 +448,8 @@ class Peripheral(BluepyHelper):
         else:
             self._writeCmd("conn %s %s\n" % (addr, addrType))
         rsp = self._getResp('stat', timeout=timeout)
-        while rsp['state'][0] == 'tryconn':
+        # When running in parallel multiple states are possible. Scan state is no error here 
+        while rsp['state'][0] == 'tryconn' or rsp['state'][0] == 'scan':
             rsp = self._getResp('stat', timeout=timeout)
         if rsp['state'][0] != 'conn':
             self._stopHelper()

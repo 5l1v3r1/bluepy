@@ -47,7 +47,7 @@
 #include "version.h"
 
 #define IO_CAPABILITY_NOINPUTNOOUTPUT   0x03
-#define BLUEPY_DEBUG_FILE_LOG 1
+#define BLUEPY_DEBUG 1
 
 #ifdef BLUEPY_DEBUG
 #define DBG(fmt, ...) do {printf("# %s() :" fmt "\n", __FUNCTION__, ##__VA_ARGS__); fflush(stdout); \
