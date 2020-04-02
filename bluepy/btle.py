@@ -64,7 +64,7 @@ class BTLEException(Exception):
                 msg = msg + "error: %s" % self.emsg
             msg = msg + ")"
         if self.response: 
-            msg = msg + self.response
+            msg = msg + str(self.response)
 
         return msg
 
