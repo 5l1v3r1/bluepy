@@ -12,7 +12,7 @@ import select
 import struct
 import signal
 import asyncio
-import timer 
+import time
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -299,7 +299,7 @@ class BluepyHelper:
             self._helper.stdin.write("quit\n")
             self._helper.stdin.flush()
             self._helper.wait()
-            timer.sleep(0.1)
+            time.sleep(0.1)
             self._helper = None
         if self._stderr is not None:
             self._stderr.close()
