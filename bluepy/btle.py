@@ -294,6 +294,7 @@ class BluepyHelper:
             time.sleep(0.1)
             self._poller = select.poll()
             self._poller.register(self._helper.stdout, select.POLLIN)
+            self._mgmtCmd("le on")
 
     def _stopHelper(self):
         if self._helper is not None:
@@ -805,7 +806,7 @@ class Scanner(BluepyHelper):
     def start(self, passive=False):
         self.passive = passive
         self._startHelper(iface=self.iface)
-        self._mgmtCmd("le on")
+        # self._mgmtCmd("le on")
         self._writeCmd(self._cmd()+"\n")
         rsp = self._waitResp("mgmt")
         if rsp["code"][0] == "success":
