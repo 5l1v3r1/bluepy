@@ -11,6 +11,7 @@ import binascii
 import select
 import struct
 import signal
+import time 
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -289,6 +290,8 @@ class BluepyHelper:
                                             stderr=self._stderr,
                                             universal_newlines=True,
                                             preexec_fn = preexec_function)
+            # Short sleep here to wait for setup                                
+            time.sleep(0.1)
             self._poller = select.poll()
             self._poller.register(self._helper.stdout, select.POLLIN)
 
@@ -299,6 +302,8 @@ class BluepyHelper:
             self._helper.stdin.write("quit\n")
             self._helper.stdin.flush()
             self._helper.wait()
+            # Short sleep here to finish close
+            time.sleep(0.1)
             self._helper = None
         if self._stderr is not None:
             self._stderr.close()
