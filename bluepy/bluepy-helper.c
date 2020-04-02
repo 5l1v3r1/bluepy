@@ -97,19 +97,16 @@ struct characteristic_data {
 
 static void cmd_help(int argcp, char **argvp);
 
-static enum state {
+enum state {
     STATE_DISCONNECTED=0,
     STATE_CONNECTING=1,
     STATE_CONNECTED=2,
     STATE_SCANNING=3,
-} conn_state;
+};
 
-static enum state {
-    STATE_DISCONNECTED=0,
-    STATE_CONNECTING=1,
-    STATE_CONNECTED=2,
-    STATE_SCANNING=3,
-} scan_state;
+static enum state conn_state;
+
+static enum state scan_state;
 
 
 static const char
