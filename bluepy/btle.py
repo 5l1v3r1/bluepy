@@ -385,7 +385,9 @@ class BluepyHelper:
     
     # async def async_wait_resp(self, wantType, timeout=None):
 
-
+    def scanStatus(self): 
+        self._writeCmd("scstat\n")
+        return self._waitResp(['scstat'])
     
     def status(self):
         self._writeCmd("stat\n")
@@ -816,7 +818,7 @@ class Scanner(BluepyHelper):
         # Sometimes previous scan still ongoing
         if rsp["code"][0] == "busy":
             self._mgmtCmd(self._cmd()+"end")
-            rsp = self._waitResp("stat")
+            rsp = self._waitResp("scstat")
             assert rsp["scstate"][0] == "disc"
             self._mgmtCmd(self._cmd())
 
@@ -839,12 +841,12 @@ class Scanner(BluepyHelper):
                     break
             else:
                 remain = None
-            resp = self._waitResp(['scan', 'stat'], remain)
+            resp = self._waitResp(['scan', 'scstat'], remain)
             if resp is None:
                 break
 
             respType = resp['rsp'][0]
-            if respType == 'stat':
+            if respType == 'scstat':
                 # if scan ended, restart it
                 if resp['scstate'][0] == 'disc':
                     self._mgmtCmd(self._cmd())

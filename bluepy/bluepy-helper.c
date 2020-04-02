@@ -1894,6 +1894,8 @@ static struct {
         "Show this help"},
     { "stat",       cmd_status, "",
         "Show current status" },
+    { "scstat",       cmd_scan_status, "",
+        "Show current scanning status" },
     { "quit",       cmd_exit,   "",
         "Exit interactive mode" },
     { "conn",       cmd_connect,    "[address [address type [interface]]]",
