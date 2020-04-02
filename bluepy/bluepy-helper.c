@@ -104,6 +104,13 @@ static enum state {
     STATE_SCANNING=3,
 } conn_state;
 
+static enum state {
+    STATE_DISCONNECTED=0,
+    STATE_CONNECTING=1,
+    STATE_CONNECTED=2,
+    STATE_SCANNING=3,
+} scan_state;
+
 
 static const char
   *tag_RESPONSE  = "rsp",
@@ -114,6 +121,7 @@ static const char
   *tag_UUID      = "uuid",
   *tag_DATA      = "d",
   *tag_CONNSTATE = "state",
+  *tag_SCANSTATE = "scstate",
   *tag_SEC_LEVEL = "sec",
   *tag_MTU       = "mtu",
   *tag_DEVICE    = "dst",
@@ -282,6 +290,43 @@ static void set_state(enum state st)
 {
     conn_state = st;
     cmd_status(0, NULL);
+}
+
+static void cmd_scan_status(int argcp, char **argvp)
+{
+  resp_begin(rsp_STATUS);
+  switch(scan_state)
+  {
+    case STATE_CONNECTING:
+      send_sym(tag_SCANSTATE, st_CONNECTING);
+      send_str(tag_DEVICE, opt_dst);
+      break;
+
+    case STATE_CONNECTED:
+      send_sym(tag_SCANSTATE, st_CONNECTED);
+      send_str(tag_DEVICE, opt_dst);
+      break;
+
+    case STATE_SCANNING:
+      send_sym(tag_SCANSTATE, st_SCANNING);
+      send_str(tag_DEVICE, opt_dst);
+      break;
+
+    default:
+      send_sym(tag_SCANSTATE, st_DISCONNECTED);
+      break;
+  }
+
+  send_uint(tag_MTU, opt_mtu);
+  send_str(tag_SEC_LEVEL, opt_sec_level);
+  resp_end();
+}
+
+//Set the state for scanning 
+static void set_scan_state(enum state st) 
+{
+    scan_state = st; 
+    cmd_scan_status(0, NULL);
 }
 
 static void events_handler(const uint8_t *pdu, uint16_t len, gpointer user_data)
@@ -1648,8 +1693,8 @@ static gboolean hci_monitor_cb(GIOChannel *chan, GIOCondition cond, gpointer use
                     if (lescan->enable) {
                         DBG("Start of passive scan.");
                     } else {
-                        if (conn_state == STATE_SCANNING) {
-                            set_state(STATE_DISCONNECTED);
+                        if (scan_state == STATE_SCANNING) {
+                            set_scan_state(STATE_DISCONNECTED);
                         }
                         DBG("End of passive scan - removing watch.");
                         return FALSE; // remove watch
@@ -1705,7 +1750,7 @@ static gboolean hci_monitor_cb(GIOChannel *chan, GIOCondition cond, gpointer use
                                     DBG("buf: %02x", ev->data[i]);
                             }
 
-                            if (conn_state == STATE_SCANNING) {
+                            if (scan_state == STATE_SCANNING) {
                                 resp_begin(rsp_SCAN);
                                 send_addr(&addr);
                                 send_uint(tag_RSSI, 256-rssi);
@@ -1802,7 +1847,7 @@ static void discover(bool start)
         }
 
         resp_mgmt(err_SUCCESS);
-        set_state(STATE_SCANNING);
+        set_scan_state(STATE_SCANNING);
     } else {
         const char* errcode = err_SUCCESS;
 
@@ -1819,7 +1864,7 @@ static void discover(bool start)
         hci_dd= -1;
         hci_io= NULL;
         resp_mgmt(errcode);
-        set_state(STATE_DISCONNECTED);
+        set_scan_state(STATE_DISCONNECTED);
     }
 }
 
@@ -2000,7 +2045,7 @@ static void mgmt_scanning(uint16_t index, uint16_t length,
 
     DBG("Scanning (0x%x): %s", ev->type, ev->discovering? "started" : "ended");
 
-    set_state(ev->discovering? STATE_SCANNING : STATE_DISCONNECTED);
+    set_scan_state(ev->discovering? STATE_SCANNING : STATE_DISCONNECTED);
 }
 
 static void mgmt_device_found(uint16_t index, uint16_t length,
@@ -2012,7 +2057,7 @@ static void mgmt_device_found(uint16_t index, uint16_t length,
     // DBG("Device found: %02X:%02X:%02X:%02X:%02X:%02X type=%X flags=%X", val[5], val[4], val[3], val[2], val[1], val[0], ev->addr.type, ev->flags);
 
     // Result sometimes sent too early
-    if (conn_state != STATE_SCANNING)
+    if (scan_state != STATE_SCANNING)
         return;
     //confirm_name(&ev->addr, 1);
 

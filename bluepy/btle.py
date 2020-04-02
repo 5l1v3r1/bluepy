@@ -12,6 +12,7 @@ import select
 import struct
 import signal
 import asyncio
+import timer 
 
 def preexec_function():
     # Ignore the SIGINT signal by setting the handler to the standard
@@ -298,6 +299,7 @@ class BluepyHelper:
             self._helper.stdin.write("quit\n")
             self._helper.stdin.flush()
             self._helper.wait()
+            timer.sleep(0.1)
             self._helper = None
         if self._stderr is not None:
             self._stderr.close()
@@ -448,9 +450,10 @@ class Peripheral(BluepyHelper):
         else:
             self._writeCmd("conn %s %s\n" % (addr, addrType))
         rsp = self._getResp('stat', timeout=timeout)
-        # When running in parallel multiple states are possible. Scan state is no error here 
-        while rsp['state'][0] == 'tryconn' or rsp['state'][0] == 'scan':
+        # Wait until the state changes to connected or disconnected if failed
+        while rsp['state'][0] != 'conn' or rsp['state'][0] != 'disc':
             rsp = self._getResp('stat', timeout=timeout)
+
         if rsp['state'][0] != 'conn':
             self._stopHelper()
             raise BTLEDisconnectError("Failed to connect to peripheral %s, addr type: %s" % (addr, addrType), rsp)
@@ -814,7 +817,7 @@ class Scanner(BluepyHelper):
         if rsp["code"][0] == "busy":
             self._mgmtCmd(self._cmd()+"end")
             rsp = self._waitResp("stat")
-            assert rsp["state"][0] == "disc"
+            assert rsp["scstate"][0] == "disc"
             self._mgmtCmd(self._cmd())
 
     def stop(self):
@@ -843,7 +846,7 @@ class Scanner(BluepyHelper):
             respType = resp['rsp'][0]
             if respType == 'stat':
                 # if scan ended, restart it
-                if resp['state'][0] == 'disc':
+                if resp['scstate'][0] == 'disc':
                     self._mgmtCmd(self._cmd())
 
             elif respType == 'scan':
