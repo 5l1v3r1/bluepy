@@ -117,8 +117,8 @@ static const char
   *tag_HANDLE    = "hnd",
   *tag_UUID      = "uuid",
   *tag_DATA      = "d",
-  *tag_CONNSTATE = "state",
-  *tag_SCANSTATE = "scstate",
+  *tag_CONNSTATE = "state", // Connection state 
+  *tag_SCANSTATE = "scstate", //ScanState 
   *tag_SEC_LEVEL = "sec",
   *tag_MTU       = "mtu",
   *tag_DEVICE    = "dst",
@@ -133,7 +133,8 @@ static const char
 
 static const char
   *rsp_ERROR     = "err",
-  *rsp_STATUS    = "stat",
+  *rsp_STATUS    = "stat", //Connection status 
+  *rsp_SCSTATUS    = "scstat", //Scan status 
   *rsp_NOTIFY    = "ntfy",
   *rsp_IND       = "ind",
   *rsp_DISCOVERY = "find",
@@ -291,7 +292,7 @@ static void set_state(enum state st)
 
 static void cmd_scan_status(int argcp, char **argvp)
 {
-  resp_begin(rsp_STATUS);
+  resp_begin(rsp_SCSTATUS);
   switch(scan_state)
   {
     case STATE_CONNECTING:
