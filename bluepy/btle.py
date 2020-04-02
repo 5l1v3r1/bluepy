@@ -38,7 +38,7 @@ class BTLEException(Exception):
     """Base class for all Bluepy exceptions"""
     def __init__(self, message, resp_dict=None):
         self.message = message
-
+        self.response = resp_dict
         # optional messages from bluepy-helper
         self.estat = None
         self.emsg = None
@@ -62,6 +62,8 @@ class BTLEException(Exception):
             if self.emsg:
                 msg = msg + "error: %s" % self.emsg
             msg = msg + ")"
+        if self.response: 
+            msg = msg + self.response
 
         return msg
 
