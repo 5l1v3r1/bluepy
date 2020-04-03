@@ -700,7 +700,7 @@ static void char_read_cb(guint8 status, const guint8 *pdu, guint16 plen,
     uint8_t value[plen];
     ssize_t vlen;
 
-    DBG("Read characteristic value. Status = %i", status)
+    DBG("Read characteristic value. Status = %i", status);
 
     if (status != 0) {
         DBG("status returned error : %s (0x%02x)",
