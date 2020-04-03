@@ -805,7 +805,7 @@ class Scanner(BluepyHelper):
     def start(self, passive=False):
         self.passive = passive
         self._startHelper(iface=self.iface)
-        # self._mgmtCmd("le on")
+        self._mgmtCmd("le on")
         self._writeCmd(self._cmd()+"\n")
         rsp = self._waitResp("mgmt")
         if rsp["code"][0] == "success":
