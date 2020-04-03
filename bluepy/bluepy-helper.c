@@ -983,7 +983,7 @@ static void cmd_read_hnd(int argcp, char **argvp)
         return;
     }
 
-    DBG("Reading handle (char) at %i", handle)
+    DBG("Reading handle (char) at %i", handle);
     
     gatt_read_char(attrib, handle, char_read_cb, attrib);
 }
