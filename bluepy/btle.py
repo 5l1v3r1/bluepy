@@ -294,7 +294,6 @@ class BluepyHelper:
             time.sleep(0.1)
             self._poller = select.poll()
             self._poller.register(self._helper.stdout, select.POLLIN)
-            self._mgmtCmd("le on")
 
     def _stopHelper(self):
         if self._helper is not None:
